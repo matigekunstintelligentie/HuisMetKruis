@@ -6,7 +6,6 @@
 // g++ -O2 render.cpp -o render -lm;./render
 using namespace std;
 #define W 512
-#define FRAMES 400
 #define F float
 #define I int
 #define B complex
@@ -56,14 +55,14 @@ V C(V p,J<V>&c,V t,F r){F e=.001;I d,b;F x=Y(A(p,w(e,0,0)),c,t,r,&d,&b)-Y(A(p,w(
 I main(){
     X=T(q,64);
     g();
-    O(I f=0;f<FRAMES;++f){
+    O(I f=0;f<400;++f){
         char fname[64];
         snprintf(fname,sizeof(fname),"%03d.ppm",f);
         FILE *o=fopen(fname,"wb");
         if(!o) continue;
         fprintf(o,"P6\n%d %d\n255\n",W,W);
 
-        F t=2*P*f/FRAMES;
+        F t=2*P*f/400;
         F tip_radius;
         J<V>centers;
         V tip=l(t,centers,tip_radius);
@@ -72,16 +71,16 @@ I main(){
             O(I x=0;x<W;x++)
                 trail[y][x] *=.999;
 
-        F angle=t*1.5;
+        F B=t*1.5;
         F radius=3.;
-        F x=cosf(angle)*radius;
-        F y=sinf(angle*h)*1.5;
-        F z=sinf(angle)*radius;
+        F x=cosf(B)*radius;
+        F y=sinf(B*h)*1.5;
+        F z=sinf(B)*radius;
         V light_dir=N(w(x,y,z));
 
         O(I y=0;y<W;y++){
             O(I x=0;x<W;x++){
-                I shape_id=0;
+                I s=0;
                 I shape_index=-1;
     
                 F u=(2.*x-W)/W;
@@ -93,33 +92,33 @@ I main(){
 
                 O(I i=0;i<100;i++){
                     V p=A(ro,M(rd,d));
-                    F dist=Y(p,centers,tip,tip_radius,&shape_id,&shape_index);
+                    F dist=Y(p,centers,tip,tip_radius,&s,&shape_index);
 
-                    if(dist<.001){ id=shape_id;break;}
+                    if(dist<.001){id=s;break;}
                     if(d>3.) break;
                     d+=dist;
                 }
 
-                I r=0,g=0,b=0;
+                F r=0,g=0,b=0;
                 if(id==1 || id==2){
                     V p=A(ro,M(rd,d));
                     V n=C(p,centers,tip,tip_radius);
-                    F w=(.3+fmaxf(0.,D(n,light_dir))*.7)*255.;
+                    F w=(.3+fmaxf(0.,D(n,light_dir))*.7);
 
-                    F ball_t=(shape_index>=0) ? (F)shape_index/(F)(centers.size()-1):0.;
+                    F ball_t=(shape_index>=0)?(F)shape_index/(F)(centers.size()-1):0.;
 
                     if(id==1){
                         F animated_t=fmodf(sqrt(ball_t)+f*.01,1.);
                         V color=U(animated_t);
-                        r=(I)(w*color.x);
-                        g=(I)(w*color.y);
-                        b=(I)(w*color.z);
-                    } else if(id==2){
+                        r=w*color.x;
+                        g=w*color.y;
+                        b=w*color.z;
+                    }else{
                         F tip_t=fmodf(sqrt(1.)+f*.01,1.); 
                         V color=U(tip_t);
-                        r=(I)(w*color.x);
-                        g=(I)(w*color.y);
-                        b=(I)(w*color.z);
+                        r=w*color.x;
+                        g=w*color.y;
+                        b=w*color.z;
                         I tx=(I)((u+1)*h*W);
                         I ty=(I)((v+1)*h*W);
                         if(tx>=0 && tx<W && ty>=0 && ty<W)
@@ -129,13 +128,13 @@ I main(){
 
                 F trail_strength=trail[y][x];
                 if(trail_strength>.001){
-                    F tr=trail_strength*255.;
-                    r=(I)clamp((F)r+tr,0.f,255.f);
-                    g=(I)clamp((F)g*(1.-trail_strength),0.,255.);
-                    b=(I)clamp((F)b*(1.-trail_strength),0.,255.);
+                    F tr=trail_strength*1.;
+                    r=clamp(r+tr,0.f,1.f);
+                    g=clamp(g*(1.-trail_strength),0.,1.);
+                    b=clamp(b*(1.-trail_strength),0.,1.);
                 }
 
-                fputc(r,o);fputc(g,o);fputc(b,o);
+                fputc((I)255.*r,o);fputc((I)255.*g,o);fputc((I)255.*b,o);
             }
         }
 
