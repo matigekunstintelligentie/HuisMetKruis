@@ -14,11 +14,12 @@ using namespace std;
 #define F float
 #define I int
 
-const F PI = 3.141592653589793f;
+const F P = 3.141592653589793f;
 
 typedef struct {F x,y,z;} V;
 
 V w(F x,F y,F z){return{x,y,z};}
+V w(F x){return{x,x,x};}
 V A(V a,V b){return w(a.x+b.x, a.y + b.y, a.z + b.z);}
 V M(V a,F s){return w(a.x*s,a.y*s,a.z*s);}
 V R(V a,V b){return w(a.x*b.x,a.y*b.y,a.z*b.z);}
@@ -28,17 +29,7 @@ V N(V v){F l=L(v);return(l>0)?M(v,1.0f/l):v;}
 
 struct E{I f;F a;F p;complex<float> c;};
 
-V iq_palette(F t, V a, V b, V c, V d) {
-    F x = cosf(2.0f * PI * (c.x * t + d.x));
-    F y = cosf(2.0f * PI * (c.y * t + d.y));
-    F z = cosf(2.0f * PI * (c.z * t + d.z));
-    return A(a, R(b, w(x, y, z)));
-}
-
-V PALETTE_A = {0.5f, 0.5f, 0.5f};
-V PALETTE_B = {0.5f, 0.5f, 0.5f};
-V PALETTE_C = {1.0f, 1.0f, 1.0f};
-V PALETTE_D = {0.0f, 0.33f, 0.67f};
+V iq_palette(F t) {F x=cosf(2.*P*(t));F y=cosf(2.*P*(t+.33));F z=cosf(2.*P*(t+.67));return A(w(.5),R(w(.5),w(x,y,z)));}
 
 vector<complex<float>> original_path = {
     {-0.5f, 0.5f},
@@ -94,7 +85,7 @@ void compute_dft() {
     for (I k = 0; k < N; ++k) {
         complex<float> sum(0.0f, 0.0f);
         for (I n = 0; n < N; ++n) {
-            F phi = 2 * PI * k * n / N;
+            F phi = 2 * P * k * n / N;
             sum += path[n] * exp(complex<float>(0, -phi));
         }
         sum /= static_cast<float>(N);
@@ -199,7 +190,7 @@ I main() {
         if (!out) continue;
         write_ppm_header(out);
 
-        F t = 2 * PI * frame / FRAMES;
+        F t = 2 * P * frame / FRAMES;
         F tip_radius;
         vector<V> centers;
         V tip = get_tip_and_centers(t, centers, tip_radius);
@@ -242,14 +233,14 @@ I main() {
 
                     if (id == 1) {
                         F animated_t = fmodf(sqrt(ball_t) + frame * 0.01f, 1.0f);
-                        V color = iq_palette(animated_t, PALETTE_A, PALETTE_B, PALETTE_C, PALETTE_D);
+                        V color = iq_palette(animated_t);
                         r = (unsigned char)(brightness * 255 * color.x);
                         g = (unsigned char)(brightness * 255 * color.y);
                         b = (unsigned char)(brightness * 255 * color.z);
                     } else if (id == 2) {
                         F tip_t = fmodf(sqrt(1.0f) + frame * 0.01f, 1.0f);  // which is just fmodf(1.0 + frame * 0.01f, 1.0f)
 
-                        V color = iq_palette(tip_t, PALETTE_A, PALETTE_B, PALETTE_C, PALETTE_D);
+                        V color = iq_palette(tip_t);
                         r = (unsigned char)(brightness * 255 * color.x);
                         g = (unsigned char)(brightness * 255 * color.y);
                         b = (unsigned char)(brightness * 255 * color.z);
