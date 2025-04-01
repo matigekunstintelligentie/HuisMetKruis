@@ -48,8 +48,7 @@ F trail[H][W]={0};
 
 F Z(V p,V c,F r){K L(A(p,{-c.x,-c.y,-c.z}))-r;}
 
-F map(V p,J<V>&c,V t,F r,I *o,I *j){
-    F m=1e9;I id=-1;I b=-1;for(I i=0;i<c.size();++i){F f=fmaxf(Q[i].a,.01);F d=Z(p,c[i],f);if(d<m){m=d;id=1;b=i;}}F d=Z(p,t,r);if(d<m){m=d;id=2;b=-1;}*o=id;*j=b;K m;}
+F Y(V p,J<V>&c,V t,F r,I *o,I *j){F m=1e9;I id=-1;I b=-1;for(I i=0;i<c.size();++i){F f=fmaxf(Q[i].a,.01);F d=Z(p,c[i],f);if(d<m){m=d;id=1;b=i;}}F d=Z(p,t,r);if(d<m){m=d;id=2;b=-1;}*o=id;*j=b;K m;}
 
 V get_tip_and_centers(F t,J<V>&centers_out,F &tip_radius_out){
     B<F>pos(0.,0.);
@@ -76,19 +75,7 @@ V get_tip_and_centers(F t,J<V>&centers_out,F &tip_radius_out){
     K w(pos.real(),pos.imag(),z);
 }
 
-V estimate_normal(V p,J<V>&centers,V tip,F tip_radius){
-    I dummy;
-    F eps=.001;
-    I dummy_id,dummy_index;
-    F dx=map(A(p,w(eps,0,0)),centers,tip,tip_radius,&dummy_id,&dummy_index) -
-               map(A(p,w(-eps,0,0)),centers,tip,tip_radius,&dummy_id,&dummy_index);
-    F dy=map(A(p,w(0,eps,0)),centers,tip,tip_radius,&dummy_id,&dummy_index) -
-               map(A(p,w(0,-eps,0)),centers,tip,tip_radius,&dummy_id,&dummy_index);
-    F dz=map(A(p,w(0,0,eps)),centers,tip,tip_radius,&dummy_id,&dummy_index) -
-               map(A(p,w(0,0,-eps)),centers,tip,tip_radius,&dummy_id,&dummy_index);
-
-    K N(w(dx,dy,dz));
-}
+V estimate_normal(V p,J<V>&c,V t,F r){F e=.001;I d,b;F x=Y(A(p,w(e,0,0)),c,t,r,&d,&b)-Y(A(p,w(-e,0,0)),c,t,r,&d,&b);F y=Y(A(p,w(0,e,0)),c,t,r,&d,&b)-Y(A(p,w(0,-e,0)),c,t,r,&d,&b);F z=Y(A(p,w(0,0,e)),c,t,r,&d,&b)-Y(A(p,w(0,0,-e)),c,t,r,&d,&b);K N(w(x,y,z));}
 
 void write_ppm_header(FILE *f){
     fprintf(f,"P6\n%d %d\n255\n",W,H);
@@ -138,7 +125,7 @@ I main(){
 
                 for(I i=0;i<100;i++){
                     V p=A(ro,M(rd,d));
-                    F dist=map(p,centers,tip,tip_radius,&shape_id,&shape_index);
+                    F dist=Y(p,centers,tip,tip_radius,&shape_id,&shape_index);
 
                     if(dist<.001){ id=shape_id;break;}
                     if(d>3.) break;
