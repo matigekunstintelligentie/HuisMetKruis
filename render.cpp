@@ -16,19 +16,15 @@ using namespace std;
 
 const F PI = 3.141592653589793f;
 
-typedef struct { F x, y, z; } Vec3;
+typedef struct {F x,y,z;} V;
 
-Vec3 vec3(F x, F y, F z) { return {x, y, z}; }
-Vec3 add(Vec3 a, Vec3 b) { return vec3(a.x + b.x, a.y + b.y, a.z + b.z); }
-Vec3 sub(Vec3 a, Vec3 b) { return vec3(a.x - b.x, a.y - b.y, a.z - b.z); }
-Vec3 mul(Vec3 a, F s) { return vec3(a.x * s, a.y * s, a.z * s); }
-
-Vec3 mul_vec(Vec3 a, Vec3 b) {
-    return vec3(a.x * b.x, a.y * b.y, a.z * b.z);
-}
-F dot(Vec3 a, Vec3 b) { return a.x*b.x + a.y*b.y + a.z*b.z; }
-F length3(Vec3 v) { return sqrtf(dot(v, v)); }
-Vec3 normalize(Vec3 v) { F l = length3(v); return (l > 0) ? mul(v, 1.0f/l) : v; }
+V w(F x,F y,F z){return{x,y,z};}
+V A(V a,V b){return w(a.x+b.x, a.y + b.y, a.z + b.z);}
+V M(V a,F s){return w(a.x*s,a.y*s,a.z*s);}
+V R(V a,V b){return w(a.x*b.x,a.y*b.y,a.z*b.z);}
+F D(V a,V b){return a.x*b.x + a.y*b.y + a.z*b.z;}
+F L(V v){return sqrtf(D(v,v));}
+V N(V v){F l=L(v);return(l>0)?M(v,1.0f/l):v;}
 
 struct Epicycle {
     I freq;
@@ -37,17 +33,17 @@ struct Epicycle {
     complex<float> coeff;
 };
 
-Vec3 iq_palette(F t, Vec3 a, Vec3 b, Vec3 c, Vec3 d) {
+V iq_palette(F t, V a, V b, V c, V d) {
     F x = cosf(2.0f * PI * (c.x * t + d.x));
     F y = cosf(2.0f * PI * (c.y * t + d.y));
     F z = cosf(2.0f * PI * (c.z * t + d.z));
-    return add(a, mul_vec(b, vec3(x, y, z)));
+    return A(a, R(b, w(x, y, z)));
 }
 
-Vec3 PALETTE_A = {0.5f, 0.5f, 0.5f};
-Vec3 PALETTE_B = {0.5f, 0.5f, 0.5f};
-Vec3 PALETTE_C = {1.0f, 1.0f, 1.0f};
-Vec3 PALETTE_D = {0.0f, 0.33f, 0.67f};
+V PALETTE_A = {0.5f, 0.5f, 0.5f};
+V PALETTE_B = {0.5f, 0.5f, 0.5f};
+V PALETTE_C = {1.0f, 1.0f, 1.0f};
+V PALETTE_D = {0.0f, 0.33f, 0.67f};
 
 vector<complex<float>> original_path = {
     {-0.5f, 0.5f},
@@ -117,11 +113,11 @@ void compute_dft() {
 
 F trail[H][W] = {0};
 
-F sdSphere(Vec3 p, Vec3 center, F r) {
-    return length3(sub(p, center)) - r;
+F sdSphere(V p, V center, F r) {
+    return L(A(p, {-center.x,-center.y,-center.z})) - r;
 }
 
-F map(Vec3 p, vector<Vec3> &centers, Vec3 tip, F tip_radius, I *out_id, I *out_index) {
+F map(V p, vector<V> &centers, V tip, F tip_radius, I *out_id, I *out_index) {
     F min_dist = 1e9f;
     I id = -1;
     I closest_index = -1;
@@ -146,7 +142,7 @@ F map(Vec3 p, vector<Vec3> &centers, Vec3 tip, F tip_radius, I *out_id, I *out_i
     return min_dist;
 }
 
-Vec3 get_tip_and_centers(F t, vector<Vec3> &centers_out, F &tip_radius_out) {
+V get_tip_and_centers(F t, vector<V> &centers_out, F &tip_radius_out) {
     complex<float> pos(0.0f, 0.0f);
     centers_out.clear();
 
@@ -161,41 +157,41 @@ Vec3 get_tip_and_centers(F t, vector<Vec3> &centers_out, F &tip_radius_out) {
         Epicycle &e = epicycles[i];
         F angle = e.freq * t + e.phase;
         complex<float> offset = e.amp * exp(complex<float>(0, angle));
-        centers_out.push_back(vec3(pos.real(), pos.imag(), z));
+        centers_out.push_back(w(pos.real(), pos.imag(), z));
         pos += offset;
         z -= dz;
         if (i == epicycles.size() - 1)
             tip_radius_out = fmaxf(e.amp, 0.01f);
     }
 
-    return vec3(pos.real(), pos.imag(), z);
+    return w(pos.real(), pos.imag(), z);
 }
 
-Vec3 estimate_normal(Vec3 p, vector<Vec3> &centers, Vec3 tip, F tip_radius) {
+V estimate_normal(V p, vector<V> &centers, V tip, F tip_radius) {
     I dummy;
     F eps = 0.001f;
     I dummy_id, dummy_index;
-    F dx = map(add(p, vec3(eps, 0, 0)), centers, tip, tip_radius, &dummy_id, &dummy_index) -
-               map(add(p, vec3(-eps, 0, 0)), centers, tip, tip_radius, &dummy_id, &dummy_index);
-    F dy = map(add(p, vec3(0, eps, 0)), centers, tip, tip_radius, &dummy_id, &dummy_index) -
-               map(add(p, vec3(0, -eps, 0)), centers, tip, tip_radius, &dummy_id, &dummy_index);
-    F dz = map(add(p, vec3(0, 0, eps)), centers, tip, tip_radius, &dummy_id, &dummy_index) -
-               map(add(p, vec3(0, 0, -eps)), centers, tip, tip_radius, &dummy_id, &dummy_index);
+    F dx = map(A(p, w(eps, 0, 0)), centers, tip, tip_radius, &dummy_id, &dummy_index) -
+               map(A(p, w(-eps, 0, 0)), centers, tip, tip_radius, &dummy_id, &dummy_index);
+    F dy = map(A(p, w(0, eps, 0)), centers, tip, tip_radius, &dummy_id, &dummy_index) -
+               map(A(p, w(0, -eps, 0)), centers, tip, tip_radius, &dummy_id, &dummy_index);
+    F dz = map(A(p, w(0, 0, eps)), centers, tip, tip_radius, &dummy_id, &dummy_index) -
+               map(A(p, w(0, 0, -eps)), centers, tip, tip_radius, &dummy_id, &dummy_index);
 
-    return normalize(vec3(dx, dy, dz));
+    return N(w(dx, dy, dz));
 }
 
 void write_ppm_header(FILE *f) {
     fprintf(f, "P6\n%d %d\n255\n", W, H);
 }
 
-Vec3 get_light(F t) {
+V get_light(F t) {
     F angle = t * 1.5f;
     F radius = 3.0f;
     F x = cosf(angle) * radius;
     F y = sinf(angle * 0.5f) * 1.5f;
     F z = sinf(angle) * radius;
-    return normalize(vec3(x, y, z));
+    return N(w(x, y, z));
 }
 
 I main() {
@@ -210,14 +206,14 @@ I main() {
 
         F t = 2 * PI * frame / FRAMES;
         F tip_radius;
-        vector<Vec3> centers;
-        Vec3 tip = get_tip_and_centers(t, centers, tip_radius);
+        vector<V> centers;
+        V tip = get_tip_and_centers(t, centers, tip_radius);
 
         for (I y = 0; y < H; y++)
             for (I x = 0; x < W; x++)
                 trail[y][x] *= 0.999f;
 
-        Vec3 light_dir = get_light(t);
+        V light_dir = get_light(t);
 
         for (I y = 0; y < H; y++) {
             for (I x = 0; x < W; x++) {
@@ -226,13 +222,13 @@ I main() {
     
                 F u = (2.0f * x - W) / H;
                 F v = (2.0f * y - H) / H;
-                Vec3 ro = vec3(0, 0, -1);
-                Vec3 rd = normalize(vec3(u, v, 1));
+                V ro = w(0, 0, -1);
+                V rd = N(w(u, v, 1));
                 F d = 0.0f;
                 I id = 0;
 
                 for (I i = 0; i < 100; i++) {
-                    Vec3 p = add(ro, mul(rd, d));
+                    V p = A(ro, M(rd, d));
                     F dist = map(p, centers, tip, tip_radius, &shape_id, &shape_index);
 
                     if (dist < 0.001f) { id = shape_id; break; }
@@ -242,23 +238,23 @@ I main() {
 
                 unsigned char r = 0, g = 0, b = 0;
                 if (id == 1 || id == 2) {
-                    Vec3 p = add(ro, mul(rd, d));
-                    Vec3 n = estimate_normal(p, centers, tip, tip_radius);
+                    V p = A(ro, M(rd, d));
+                    V n = estimate_normal(p, centers, tip, tip_radius);
                     F ambient = 0.3f;
-                    F brightness = ambient + fmaxf(0.0f, dot(n, light_dir)) * 0.7f;
+                    F brightness = ambient + fmaxf(0.0f, D(n, light_dir)) * 0.7f;
 
                     F ball_t = (shape_index >= 0) ? (float)shape_index / (float)(centers.size() - 1) : 0.0f;
 
                     if (id == 1) {
                         F animated_t = fmodf(sqrt(ball_t) + frame * 0.01f, 1.0f);
-                        Vec3 color = iq_palette(animated_t, PALETTE_A, PALETTE_B, PALETTE_C, PALETTE_D);
+                        V color = iq_palette(animated_t, PALETTE_A, PALETTE_B, PALETTE_C, PALETTE_D);
                         r = (unsigned char)(brightness * 255 * color.x);
                         g = (unsigned char)(brightness * 255 * color.y);
                         b = (unsigned char)(brightness * 255 * color.z);
                     } else if (id == 2) {
                         F tip_t = fmodf(sqrt(1.0f) + frame * 0.01f, 1.0f);  // which is just fmodf(1.0 + frame * 0.01f, 1.0f)
 
-                        Vec3 color = iq_palette(tip_t, PALETTE_A, PALETTE_B, PALETTE_C, PALETTE_D);
+                        V color = iq_palette(tip_t, PALETTE_A, PALETTE_B, PALETTE_C, PALETTE_D);
                         r = (unsigned char)(brightness * 255 * color.x);
                         g = (unsigned char)(brightness * 255 * color.y);
                         b = (unsigned char)(brightness * 255 * color.z);
