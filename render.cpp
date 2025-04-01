@@ -56,14 +56,14 @@ V C(V p,J<V>&c,V t,F r){F e=.001;I d,b;F x=Y(A(p,w(e,0,0)),c,t,r,&d,&b)-Y(A(p,w(
 I main(){
     X=T(q,64);
     g();
-    O(I frame=0;frame<FRAMES;++frame){
+    O(I f=0;f<FRAMES;++f){
         char fname[64];
-        snprintf(fname,sizeof(fname),"frame_%03d.ppm",frame);
+        snprintf(fname,sizeof(fname),"%03d.ppm",f);
         FILE *o=fopen(fname,"wb");
         if(!o) continue;
         fprintf(o,"P6\n%d %d\n255\n",W,W);
 
-        F t=2*P*frame/FRAMES;
+        F t=2*P*f/FRAMES;
         F tip_radius;
         J<V>centers;
         V tip=l(t,centers,tip_radius);
@@ -104,19 +104,18 @@ I main(){
                 if(id==1 || id==2){
                     V p=A(ro,M(rd,d));
                     V n=C(p,centers,tip,tip_radius);
-                    F ambient=.3;
-                    F w=(ambient+fmaxf(0.,D(n,light_dir))*.7)*255.;
+                    F w=(.3+fmaxf(0.,D(n,light_dir))*.7)*255.;
 
                     F ball_t=(shape_index>=0) ? (F)shape_index/(F)(centers.size()-1):0.;
 
                     if(id==1){
-                        F animated_t=fmodf(sqrt(ball_t)+frame*.01,1.);
+                        F animated_t=fmodf(sqrt(ball_t)+f*.01,1.);
                         V color=U(animated_t);
                         r=(I)(w*color.x);
                         g=(I)(w*color.y);
                         b=(I)(w*color.z);
                     } else if(id==2){
-                        F tip_t=fmodf(sqrt(1.)+frame*.01,1.); 
+                        F tip_t=fmodf(sqrt(1.)+f*.01,1.); 
                         V color=U(tip_t);
                         r=(I)(w*color.x);
                         g=(I)(w*color.y);
