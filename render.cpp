@@ -26,12 +26,7 @@ F D(V a,V b){return a.x*b.x + a.y*b.y + a.z*b.z;}
 F L(V v){return sqrtf(D(v,v));}
 V N(V v){F l=L(v);return(l>0)?M(v,1.0f/l):v;}
 
-struct Epicycle {
-    I freq;
-    F amp;
-    F phase;
-    complex<float> coeff;
-};
+struct E{I f;F a;F p;complex<float> c;};
 
 V iq_palette(F t, V a, V b, V c, V d) {
     F x = cosf(2.0f * PI * (c.x * t + d.x));
@@ -58,7 +53,7 @@ vector<complex<float>> original_path = {
     {-0.5f, 0.5f},
 };
 
-vector<complex<float>> interpolate_path(const vector<complex<float>>& points, I total_samples) {
+vector<complex<float>> interpolate_path(const vector<complex<float>>& points, I total_sales) {
     F total_length = 0.0f;
     vector<float> segment_lengths;
     for (size_t i = 0; i < points.size() - 1; ++i) {
@@ -67,13 +62,13 @@ vector<complex<float>> interpolate_path(const vector<complex<float>>& points, I 
         total_length += len;
     }
 
-    vector<complex<float>> sampled_path;
-    F step = total_length / total_samples;
+    vector<complex<float>> saled_path;
+    F step = total_length / total_sales;
     F current_dist = 0.0f;
     size_t seg = 0;
     F seg_pos = 0.0f;
 
-    for (I i = 0; i < total_samples; ++i) {
+    for (I i = 0; i < total_sales; ++i) {
         while (seg < segment_lengths.size() && seg_pos + segment_lengths[seg] < current_dist) {
             seg_pos += segment_lengths[seg];
             seg++;
@@ -83,15 +78,15 @@ vector<complex<float>> interpolate_path(const vector<complex<float>>& points, I 
         complex<float> a = points[seg];
         complex<float> b = points[seg + 1];
         complex<float> interp = a + (b - a) * local_t;
-        sampled_path.push_back(interp);
+        saled_path.push_back(interp);
         current_dist += step;
     }
 
-    return sampled_path;
+    return saled_path;
 }
 
 vector<complex<float>> path;
-vector<Epicycle> epicycles;
+vector<E> epicycles;
 
 void compute_dft() {
     I N = path.size();
@@ -103,11 +98,11 @@ void compute_dft() {
             sum += path[n] * exp(complex<float>(0, -phi));
         }
         sum /= static_cast<float>(N);
-        I freq = (k <= N/2) ? k : k - N;
-        epicycles.push_back({freq, abs(sum), atan2(sum.imag(), sum.real()), sum});
+        I f = (k <= N/2) ? k : k - N;
+        epicycles.push_back({f, abs(sum), atan2(sum.imag(), sum.real()), sum});
     }
-    sort(epicycles.begin(), epicycles.end(), [](Epicycle a, Epicycle b) {
-        return a.amp > b.amp;
+    sort(epicycles.begin(), epicycles.end(), [](E a, E b) {
+        return a.a > b.a;
     });
 }
 
@@ -123,7 +118,7 @@ F map(V p, vector<V> &centers, V tip, F tip_radius, I *out_id, I *out_index) {
     I closest_index = -1;
 
     for (I i = 0; i < centers.size(); ++i) {
-        F radius = fmaxf(epicycles[i].amp, 0.01f);
+        F radius = fmaxf(epicycles[i].a, 0.01f);
         F d = sdSphere(p, centers[i], radius);
         if (d < min_dist) {
             min_dist = d;
@@ -148,20 +143,20 @@ V get_tip_and_centers(F t, vector<V> &centers_out, F &tip_radius_out) {
 
     F total_radius = 0.0f;
     for (const auto &e : epicycles)
-        total_radius += e.amp;
+        total_radius += e.a;
 
     F z = total_radius + 0.1f;
     F dz = total_radius / epicycles.size();
 
     for (I i = 0; i < epicycles.size(); ++i) {
-        Epicycle &e = epicycles[i];
-        F angle = e.freq * t + e.phase;
-        complex<float> offset = e.amp * exp(complex<float>(0, angle));
+        E &e = epicycles[i];
+        F angle = e.f * t + e.p;
+        complex<float> offset = e.a * exp(complex<float>(0, angle));
         centers_out.push_back(w(pos.real(), pos.imag(), z));
         pos += offset;
         z -= dz;
         if (i == epicycles.size() - 1)
-            tip_radius_out = fmaxf(e.amp, 0.01f);
+            tip_radius_out = fmaxf(e.a, 0.01f);
     }
 
     return w(pos.real(), pos.imag(), z);
