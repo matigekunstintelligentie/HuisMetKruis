@@ -13,8 +13,10 @@ using namespace std;
 #define FRAMES 400
 #define F float
 #define I int
+#define B complex
+#define J vector
 
-const F P = 3.141592653589793f;
+F P = 3.141592653589793f;
 
 typedef struct {F x,y,z;} V;
 
@@ -27,33 +29,23 @@ F D(V a,V b){return a.x*b.x + a.y*b.y + a.z*b.z;}
 F L(V v){return sqrtf(D(v,v));}
 V N(V v){F l=L(v);return(l>0)?M(v,1.0f/l):v;}
 
-struct E{I f;F a;F p;complex<float> c;};
+struct E{I f;F a;F p;B<F> c;};
 
 V iq_palette(F t) {F x=cosf(2.*P*(t));F y=cosf(2.*P*(t+.33));F z=cosf(2.*P*(t+.67));return A(w(.5),R(w(.5),w(x,y,z)));}
 
-vector<complex<float>> original_path = {
-    {-0.5f, 0.5f},
-    {-0.5f,  -0.5f},
-    { 0.0f,  -0.85f},
-    { 0.5f,  -0.5f},
-    { 0.5f, 0.5f},
-    {-0.5f, 0.5f},
-    { 0.5f,  -0.5f},
-    {-0.5f,  -0.5f},
-    {0.5f, 0.5f},
-    {-0.5f, 0.5f},
-};
+F h=.5;
+J<B<F>> q={{-h,h},{-h,-h},{0.,-.85},{h,-h},{h,h},{-h,h},{h,-h},{-h,-h},{h,h},{-h,h}};
 
-vector<complex<float>> interpolate_path(const vector<complex<float>>& points, I total_sales) {
+J<B<F>> interpolate_path(const J<B<F>>& points, I total_sales) {
     F total_length = 0.0f;
-    vector<float> segment_lengths;
+    J<F> segment_lengths;
     for (size_t i = 0; i < points.size() - 1; ++i) {
         F len = abs(points[i + 1] - points[i]);
         segment_lengths.push_back(len);
         total_length += len;
     }
 
-    vector<complex<float>> saled_path;
+    J<B<F>> saled_path;
     F step = total_length / total_sales;
     F current_dist = 0.0f;
     size_t seg = 0;
@@ -66,9 +58,9 @@ vector<complex<float>> interpolate_path(const vector<complex<float>>& points, I 
         }
         if (seg >= segment_lengths.size()) break;
         F local_t = (current_dist - seg_pos) / segment_lengths[seg];
-        complex<float> a = points[seg];
-        complex<float> b = points[seg + 1];
-        complex<float> interp = a + (b - a) * local_t;
+        B<F> a = points[seg];
+        B<F> b = points[seg + 1];
+        B<F> interp = a + (b - a) * local_t;
         saled_path.push_back(interp);
         current_dist += step;
     }
@@ -76,19 +68,19 @@ vector<complex<float>> interpolate_path(const vector<complex<float>>& points, I 
     return saled_path;
 }
 
-vector<complex<float>> path;
-vector<E> epicycles;
+J<B<F>> path;
+J<E> epicycles;
 
 void compute_dft() {
     I N = path.size();
     epicycles.clear();
     for (I k = 0; k < N; ++k) {
-        complex<float> sum(0.0f, 0.0f);
+        B<F> sum(0.0f, 0.0f);
         for (I n = 0; n < N; ++n) {
             F phi = 2 * P * k * n / N;
-            sum += path[n] * exp(complex<float>(0, -phi));
+            sum += path[n] * exp(B<F>(0, -phi));
         }
-        sum /= static_cast<float>(N);
+        sum /= static_cast<F>(N);
         I f = (k <= N/2) ? k : k - N;
         epicycles.push_back({f, abs(sum), atan2(sum.imag(), sum.real()), sum});
     }
@@ -103,7 +95,7 @@ F sdSphere(V p, V center, F r) {
     return L(A(p, {-center.x,-center.y,-center.z})) - r;
 }
 
-F map(V p, vector<V> &centers, V tip, F tip_radius, I *out_id, I *out_index) {
+F map(V p, J<V> &centers, V tip, F tip_radius, I *out_id, I *out_index) {
     F min_dist = 1e9f;
     I id = -1;
     I closest_index = -1;
@@ -128,8 +120,8 @@ F map(V p, vector<V> &centers, V tip, F tip_radius, I *out_id, I *out_index) {
     return min_dist;
 }
 
-V get_tip_and_centers(F t, vector<V> &centers_out, F &tip_radius_out) {
-    complex<float> pos(0.0f, 0.0f);
+V get_tip_and_centers(F t, J<V> &centers_out, F &tip_radius_out) {
+    B<F> pos(0.0f, 0.0f);
     centers_out.clear();
 
     F total_radius = 0.0f;
@@ -142,7 +134,7 @@ V get_tip_and_centers(F t, vector<V> &centers_out, F &tip_radius_out) {
     for (I i = 0; i < epicycles.size(); ++i) {
         E &e = epicycles[i];
         F angle = e.f * t + e.p;
-        complex<float> offset = e.a * exp(complex<float>(0, angle));
+        B<F> offset = e.a * exp(B<F>(0, angle));
         centers_out.push_back(w(pos.real(), pos.imag(), z));
         pos += offset;
         z -= dz;
@@ -153,7 +145,7 @@ V get_tip_and_centers(F t, vector<V> &centers_out, F &tip_radius_out) {
     return w(pos.real(), pos.imag(), z);
 }
 
-V estimate_normal(V p, vector<V> &centers, V tip, F tip_radius) {
+V estimate_normal(V p, J<V> &centers, V tip, F tip_radius) {
     I dummy;
     F eps = 0.001f;
     I dummy_id, dummy_index;
@@ -175,13 +167,13 @@ V get_light(F t) {
     F angle = t * 1.5f;
     F radius = 3.0f;
     F x = cosf(angle) * radius;
-    F y = sinf(angle * 0.5f) * 1.5f;
+    F y = sinf(angle * h) * 1.5f;
     F z = sinf(angle) * radius;
     return N(w(x, y, z));
 }
 
 I main() {
-    path = interpolate_path(original_path, 64);
+    path = interpolate_path(q, 64);
     compute_dft();
     for (I frame = 0; frame < FRAMES; ++frame) {
         char fname[64];
@@ -192,7 +184,7 @@ I main() {
 
         F t = 2 * P * frame / FRAMES;
         F tip_radius;
-        vector<V> centers;
+        J<V> centers;
         V tip = get_tip_and_centers(t, centers, tip_radius);
 
         for (I y = 0; y < H; y++)
@@ -229,7 +221,7 @@ I main() {
                     F ambient = 0.3f;
                     F brightness = ambient + fmaxf(0.0f, D(n, light_dir)) * 0.7f;
 
-                    F ball_t = (shape_index >= 0) ? (float)shape_index / (float)(centers.size() - 1) : 0.0f;
+                    F ball_t = (shape_index >= 0) ? (F)shape_index / (F)(centers.size() - 1) : 0.0f;
 
                     if (id == 1) {
                         F animated_t = fmodf(sqrt(ball_t) + frame * 0.01f, 1.0f);
@@ -244,8 +236,8 @@ I main() {
                         r = (unsigned char)(brightness * 255 * color.x);
                         g = (unsigned char)(brightness * 255 * color.y);
                         b = (unsigned char)(brightness * 255 * color.z);
-                        I tx = (int)((u + 1) * 0.5f * W);
-                        I ty = (int)((v + 1) * 0.5f * H);
+                        I tx = (int)((u + 1) * h * W);
+                        I ty = (int)((v + 1) * h * H);
                         if (tx >= 0 && tx < W && ty >= 0 && ty < H)
                             trail[ty][tx] = 1.0f;
                     }
@@ -255,9 +247,9 @@ I main() {
                 if (trail_strength > 0.001f) {
                     // Mix original color with red trail
                     F tr = trail_strength * 255.0f;
-                    r = (unsigned char)clamp((float)r + tr, 0.0f, 255.0f);
-                    g = (unsigned char)clamp((float)g * (1.0f - trail_strength), 0.0f, 255.0f);
-                    b = (unsigned char)clamp((float)b * (1.0f - trail_strength), 0.0f, 255.0f);
+                    r = (unsigned char)clamp((F)r + tr, 0.0f, 255.0f);
+                    g = (unsigned char)clamp((F)g * (1.0f - trail_strength), 0.0f, 255.0f);
+                    b = (unsigned char)clamp((F)b * (1.0f - trail_strength), 0.0f, 255.0f);
                 }
 
                 fputc(r, out); fputc(g, out); fputc(b, out);
