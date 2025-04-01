@@ -37,7 +37,7 @@ F h=.5;
 J<B<F>> q={{-h,h},{-h,-h},{0.,-.85},{h,-h},{h,h},{-h,h},{h,-h},{-h,-h},{h,h},{-h,h}};
 
 J<B<F>> interpolate_path(const J<B<F>>& points, I total_sales) {
-    F total_length = 0.0f;
+    F total_length = 0.;
     J<F> segment_lengths;
     for (size_t i = 0; i < points.size() - 1; ++i) {
         F len = abs(points[i + 1] - points[i]);
@@ -47,9 +47,9 @@ J<B<F>> interpolate_path(const J<B<F>>& points, I total_sales) {
 
     J<B<F>> saled_path;
     F step = total_length / total_sales;
-    F current_dist = 0.0f;
+    F current_dist = 0.;
     size_t seg = 0;
-    F seg_pos = 0.0f;
+    F seg_pos = 0.;
 
     for (I i = 0; i < total_sales; ++i) {
         while (seg < segment_lengths.size() && seg_pos + segment_lengths[seg] < current_dist) {
@@ -75,7 +75,7 @@ void compute_dft() {
     I N = path.size();
     epicycles.clear();
     for (I k = 0; k < N; ++k) {
-        B<F> sum(0.0f, 0.0f);
+        B<F> sum(0., 0.);
         for (I n = 0; n < N; ++n) {
             F phi = 2 * P * k * n / N;
             sum += path[n] * exp(B<F>(0, -phi));
@@ -96,12 +96,12 @@ F sdSphere(V p, V center, F r) {
 }
 
 F map(V p, J<V> &centers, V tip, F tip_radius, I *out_id, I *out_index) {
-    F min_dist = 1e9f;
+    F min_dist = 1e9;
     I id = -1;
     I closest_index = -1;
 
     for (I i = 0; i < centers.size(); ++i) {
-        F radius = fmaxf(epicycles[i].a, 0.01f);
+        F radius = fmaxf(epicycles[i].a, .01);
         F d = sdSphere(p, centers[i], radius);
         if (d < min_dist) {
             min_dist = d;
@@ -121,14 +121,14 @@ F map(V p, J<V> &centers, V tip, F tip_radius, I *out_id, I *out_index) {
 }
 
 V get_tip_and_centers(F t, J<V> &centers_out, F &tip_radius_out) {
-    B<F> pos(0.0f, 0.0f);
+    B<F> pos(0., 0.);
     centers_out.clear();
 
-    F total_radius = 0.0f;
+    F total_radius = 0.;
     for (const auto &e : epicycles)
         total_radius += e.a;
 
-    F z = total_radius + 0.1f;
+    F z = total_radius + .1;
     F dz = total_radius / epicycles.size();
 
     for (I i = 0; i < epicycles.size(); ++i) {
@@ -139,7 +139,7 @@ V get_tip_and_centers(F t, J<V> &centers_out, F &tip_radius_out) {
         pos += offset;
         z -= dz;
         if (i == epicycles.size() - 1)
-            tip_radius_out = fmaxf(e.a, 0.01f);
+            tip_radius_out = fmaxf(e.a, .01);
     }
 
     return w(pos.real(), pos.imag(), z);
@@ -147,7 +147,7 @@ V get_tip_and_centers(F t, J<V> &centers_out, F &tip_radius_out) {
 
 V estimate_normal(V p, J<V> &centers, V tip, F tip_radius) {
     I dummy;
-    F eps = 0.001f;
+    F eps = .001;
     I dummy_id, dummy_index;
     F dx = map(A(p, w(eps, 0, 0)), centers, tip, tip_radius, &dummy_id, &dummy_index) -
                map(A(p, w(-eps, 0, 0)), centers, tip, tip_radius, &dummy_id, &dummy_index);
@@ -164,10 +164,10 @@ void write_ppm_header(FILE *f) {
 }
 
 V get_light(F t) {
-    F angle = t * 1.5f;
-    F radius = 3.0f;
+    F angle = t * 1.5;
+    F radius = 3.;
     F x = cosf(angle) * radius;
-    F y = sinf(angle * h) * 1.5f;
+    F y = sinf(angle * h) * 1.5;
     F z = sinf(angle) * radius;
     return N(w(x, y, z));
 }
@@ -189,7 +189,7 @@ I main() {
 
         for (I y = 0; y < H; y++)
             for (I x = 0; x < W; x++)
-                trail[y][x] *= 0.999f;
+                trail[y][x] *= .999;
 
         V light_dir = get_light(t);
 
@@ -198,19 +198,19 @@ I main() {
                 I shape_id = 0;
                 I shape_index = -1;
     
-                F u = (2.0f * x - W) / H;
-                F v = (2.0f * y - H) / H;
+                F u = (2. * x - W) / H;
+                F v = (2. * y - H) / H;
                 V ro = w(0, 0, -1);
                 V rd = N(w(u, v, 1));
-                F d = 0.0f;
+                F d = 0.;
                 I id = 0;
 
                 for (I i = 0; i < 100; i++) {
                     V p = A(ro, M(rd, d));
                     F dist = map(p, centers, tip, tip_radius, &shape_id, &shape_index);
 
-                    if (dist < 0.001f) { id = shape_id; break; }
-                    if (d > 3.0f) break;
+                    if (dist < .001) { id = shape_id; break; }
+                    if (d > 3.) break;
                     d += dist;
                 }
 
@@ -218,19 +218,19 @@ I main() {
                 if (id == 1 || id == 2) {
                     V p = A(ro, M(rd, d));
                     V n = estimate_normal(p, centers, tip, tip_radius);
-                    F ambient = 0.3f;
-                    F brightness = ambient + fmaxf(0.0f, D(n, light_dir)) * 0.7f;
+                    F ambient = .3;
+                    F brightness = ambient + fmaxf(0., D(n, light_dir)) * .7;
 
-                    F ball_t = (shape_index >= 0) ? (F)shape_index / (F)(centers.size() - 1) : 0.0f;
+                    F ball_t = (shape_index >= 0) ? (F)shape_index / (F)(centers.size() - 1) : 0.;
 
                     if (id == 1) {
-                        F animated_t = fmodf(sqrt(ball_t) + frame * 0.01f, 1.0f);
+                        F animated_t = fmodf(sqrt(ball_t) + frame * .01, 1.);
                         V color = iq_palette(animated_t);
                         r = (unsigned char)(brightness * 255 * color.x);
                         g = (unsigned char)(brightness * 255 * color.y);
                         b = (unsigned char)(brightness * 255 * color.z);
                     } else if (id == 2) {
-                        F tip_t = fmodf(sqrt(1.0f) + frame * 0.01f, 1.0f);  // which is just fmodf(1.0 + frame * 0.01f, 1.0f)
+                        F tip_t = fmodf(sqrt(1.) + frame * .01, 1.);  // which is just fmodf(1.0 + frame * 0.01f, 1.0f)
 
                         V color = iq_palette(tip_t);
                         r = (unsigned char)(brightness * 255 * color.x);
@@ -239,17 +239,17 @@ I main() {
                         I tx = (int)((u + 1) * h * W);
                         I ty = (int)((v + 1) * h * H);
                         if (tx >= 0 && tx < W && ty >= 0 && ty < H)
-                            trail[ty][tx] = 1.0f;
+                            trail[ty][tx] = 1.;
                     }
                 }
 
                 F trail_strength = trail[y][x];
-                if (trail_strength > 0.001f) {
+                if (trail_strength > .001) {
                     // Mix original color with red trail
-                    F tr = trail_strength * 255.0f;
-                    r = (unsigned char)clamp((F)r + tr, 0.0f, 255.0f);
-                    g = (unsigned char)clamp((F)g * (1.0f - trail_strength), 0.0f, 255.0f);
-                    b = (unsigned char)clamp((F)b * (1.0f - trail_strength), 0.0f, 255.0f);
+                    F tr = trail_strength * 255.;
+                    r = (unsigned char)clamp((F)r + tr, 0.f, 255.f);
+                    g = (unsigned char)clamp((F)g * (1. - trail_strength), 0., 255.);
+                    b = (unsigned char)clamp((F)b * (1. - trail_strength), 0., 255.);
                 }
 
                 fputc(r, out); fputc(g, out); fputc(b, out);
