@@ -31,42 +31,12 @@ V N(V v){F l=L(v);return(l>0)?M(v,1.0f/l):v;}
 
 struct E{I f;F a;F p;B<F> c;};
 
-V iq_palette(F t) {F x=cosf(2.*P*(t));F y=cosf(2.*P*(t+.33));F z=cosf(2.*P*(t+.67));return A(w(.5),R(w(.5),w(x,y,z)));}
+V U(F t){F x=cosf(2.*P*(t));F y=cosf(2.*P*(t+.33));F z=cosf(2.*P*(t+.67));return A(w(.5),R(w(.5),w(x,y,z)));}
 
 F h=.5;
 J<B<F>> q={{-h,h},{-h,-h},{0.,-.85},{h,-h},{h,h},{-h,h},{h,-h},{-h,-h},{h,h},{-h,h}};
 
-J<B<F>> interpolate_path(const J<B<F>>& points, I total_sales) {
-    F total_length = 0.;
-    J<F> segment_lengths;
-    for (size_t i = 0; i < points.size() - 1; ++i) {
-        F len = abs(points[i + 1] - points[i]);
-        segment_lengths.push_back(len);
-        total_length += len;
-    }
-
-    J<B<F>> saled_path;
-    F step = total_length / total_sales;
-    F current_dist = 0.;
-    size_t seg = 0;
-    F seg_pos = 0.;
-
-    for (I i = 0; i < total_sales; ++i) {
-        while (seg < segment_lengths.size() && seg_pos + segment_lengths[seg] < current_dist) {
-            seg_pos += segment_lengths[seg];
-            seg++;
-        }
-        if (seg >= segment_lengths.size()) break;
-        F local_t = (current_dist - seg_pos) / segment_lengths[seg];
-        B<F> a = points[seg];
-        B<F> b = points[seg + 1];
-        B<F> interp = a + (b - a) * local_t;
-        saled_path.push_back(interp);
-        current_dist += step;
-    }
-
-    return saled_path;
-}
+J<B<F>> T(J<B<F>>& p, I b) {F t=0.;J<F>s;for(I i=0;i<p.size()-1;++i){F l=abs(p[i+1]-p[i]);s.push_back(l);t+=l;}J<B<F>>k;F step=t/b;F c=0.;I g=0;F q=c;for(I i=0;i<b;++i){while(g<s.size()&&q+s[g]<c){q+=s[g];g++;}if(g>=s.size())break;F l=(c-q)/s[g];B<F>a=p[g];B<F>b=p[g+1];B<F>x=a+(b-a)*l;k.push_back(x);c+=step;}return k;}
 
 J<B<F>> path;
 J<E> epicycles;
@@ -125,7 +95,7 @@ V get_tip_and_centers(F t, J<V> &centers_out, F &tip_radius_out) {
     centers_out.clear();
 
     F total_radius = 0.;
-    for (const auto &e : epicycles)
+    for (auto &e : epicycles)
         total_radius += e.a;
 
     F z = total_radius + .1;
@@ -173,7 +143,7 @@ V get_light(F t) {
 }
 
 I main() {
-    path = interpolate_path(q, 64);
+    path = T(q, 64);
     compute_dft();
     for (I frame = 0; frame < FRAMES; ++frame) {
         char fname[64];
@@ -225,14 +195,14 @@ I main() {
 
                     if (id == 1) {
                         F animated_t = fmodf(sqrt(ball_t) + frame * .01, 1.);
-                        V color = iq_palette(animated_t);
+                        V color = U(animated_t);
                         r = (unsigned char)(brightness * 255 * color.x);
                         g = (unsigned char)(brightness * 255 * color.y);
                         b = (unsigned char)(brightness * 255 * color.z);
                     } else if (id == 2) {
                         F tip_t = fmodf(sqrt(1.) + frame * .01, 1.);  // which is just fmodf(1.0 + frame * 0.01f, 1.0f)
 
-                        V color = iq_palette(tip_t);
+                        V color = U(tip_t);
                         r = (unsigned char)(brightness * 255 * color.x);
                         g = (unsigned char)(brightness * 255 * color.y);
                         b = (unsigned char)(brightness * 255 * color.z);
