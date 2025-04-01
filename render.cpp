@@ -15,64 +15,41 @@ using namespace std;
 #define I int
 #define B complex
 #define J vector
+#define K return
 
 F P=3.141592653589793f;
 
 typedef struct{F x,y,z;} V;
 
-V w(F x,F y,F z){return{x,y,z};}
-V w(F x){return{x,x,x};}
-V A(V a,V b){return w(a.x+b.x,a.y+b.y,a.z+b.z);}
-V M(V a,F s){return w(a.x*s,a.y*s,a.z*s);}
-V R(V a,V b){return w(a.x*b.x,a.y*b.y,a.z*b.z);}
-F D(V a,V b){return a.x*b.x+a.y*b.y+a.z*b.z;}
-F L(V v){return sqrtf(D(v,v));}
-V N(V v){F l=L(v);return(l>0)?M(v,1.0f/l):v;}
+V w(F x,F y,F z){K{x,y,z};}
+V w(F x){K{x,x,x};}
+V A(V a,V b){K w(a.x+b.x,a.y+b.y,a.z+b.z);}
+V M(V a,F s){K w(a.x*s,a.y*s,a.z*s);}
+V R(V a,V b){K w(a.x*b.x,a.y*b.y,a.z*b.z);}
+F D(V a,V b){K a.x*b.x+a.y*b.y+a.z*b.z;}
+F L(V v){K sqrtf(D(v,v));}
+V N(V v){F l=L(v);K(l>0)?M(v,1.0f/l):v;}
 
 struct E{I f;F a;F p;B<F>c;};
 
-V U(F t){F x=cosf(2.*P*(t));F y=cosf(2.*P*(t+.33));F z=cosf(2.*P*(t+.67));return A(w(.5),R(w(.5),w(x,y,z)));}
+V U(F t){F x=cosf(2.*P*(t));F y=cosf(2.*P*(t+.33));F z=cosf(2.*P*(t+.67));K A(w(.5),R(w(.5),w(x,y,z)));}
 
 F h=.5;
 J<B<F>>q={{-h,h},{-h,-h},{0.,-.85},{h,-h},{h,h},{-h,h},{h,-h},{-h,-h},{h,h},{-h,h}};
 
-J<B<F>>T(J<B<F>>& p,I b){F t=0.;J<F>s;for(I i=0;i<p.size()-1;++i){F l=abs(p[i+1]-p[i]);s.push_back(l);t+=l;}J<B<F>>k;F step=t/b;F c=0.;I g=0;F q=c;for(I i=0;i<b;++i){while(g<s.size()&&q+s[g]<c){q+=s[g];g++;}if(g>=s.size())break;F l=(c-q)/s[g];B<F>a=p[g];B<F>b=p[g+1];B<F>x=a+(b-a)*l;k.push_back(x);c+=step;}return k;}
+J<B<F>>T(J<B<F>>& p,I b){F t=0.;J<F>s;for(I i=0;i<p.size()-1;++i){F l=abs(p[i+1]-p[i]);s.push_back(l);t+=l;}J<B<F>>k;F step=t/b;F c=0.;I g=0;F q=c;for(I i=0;i<b;++i){while(g<s.size()&&q+s[g]<c){q+=s[g];g++;}if(g>=s.size())break;F l=(c-q)/s[g];B<F>a=p[g];B<F>b=p[g+1];B<F>x=a+(b-a)*l;k.push_back(x);c+=step;}K k;}
 
 J<B<F>>X;
 J<E>Q;
 
-void compute_dft(){I N=X.size();Q.clear();for(I k=0;k<N;++k){B<F>s(0.,0.);for(I n=0;n<N;++n){F h=2*P*k*n/N;s+=X[n]*exp(B<F>(0,-h));}s/=static_cast<F>(N);I f=(k<=N/2)?k:k-N;Q.push_back({f,abs(s),atan2(s.imag(),s.real()),s});}sort(Q.begin(),Q.end(),[](E a,E b){return a.a>b.a;});}
+void g(){I N=X.size();Q.clear();for(I k=0;k<N;++k){B<F>s(0.,0.);for(I n=0;n<N;++n){F h=2*P*k*n/N;s+=X[n]*exp(B<F>(0,-h));}s/=static_cast<F>(N);I f=(k<=N/2)?k:k-N;Q.push_back({f,abs(s),atan2(s.imag(),s.real()),s});}sort(Q.begin(),Q.end(),[](E a,E b){K a.a>b.a;});}
 
 F trail[H][W]={0};
 
-F sdSphere(V p,V center,F r){
-    return L(A(p,{-center.x,-center.y,-center.z})) - r;
-}
+F Z(V p,V c,F r){K L(A(p,{-c.x,-c.y,-c.z}))-r;}
 
-F map(V p,J<V>&centers,V tip,F tip_radius,I *out_id,I *out_index){
-    F min_dist=1e9;
-    I id=-1;
-    I closest_index=-1;
-
-    for(I i=0;i<centers.size();++i){
-        F radius=fmaxf(Q[i].a,.01);
-        F d=sdSphere(p,centers[i],radius);
-        if (d<min_dist){
-            min_dist=d;
-            id=1;
-            closest_index=i;
-        }
-    }
-    F d_tip=sdSphere(p,tip,tip_radius);
-    if (d_tip<min_dist){
-        min_dist=d_tip;
-        id=2;
-        closest_index=-1;
-    }
-    *out_id=id;
-    *out_index=closest_index;
-    return min_dist;
-}
+F map(V p,J<V>&c,V t,F r,I *o,I *j){
+    F m=1e9;I id=-1;I b=-1;for(I i=0;i<c.size();++i){F f=fmaxf(Q[i].a,.01);F d=Z(p,c[i],f);if(d<m){m=d;id=1;b=i;}}F d=Z(p,t,r);if(d<m){m=d;id=2;b=-1;}*o=id;*j=b;K m;}
 
 V get_tip_and_centers(F t,J<V>&centers_out,F &tip_radius_out){
     B<F>pos(0.,0.);
@@ -92,11 +69,11 @@ V get_tip_and_centers(F t,J<V>&centers_out,F &tip_radius_out){
         centers_out.push_back(w(pos.real(),pos.imag(),z));
         pos+=offset;
         z -=dz;
-        if (i==Q.size() - 1)
+        if(i==Q.size() - 1)
             tip_radius_out=fmaxf(e.a,.01);
     }
 
-    return w(pos.real(),pos.imag(),z);
+    K w(pos.real(),pos.imag(),z);
 }
 
 V estimate_normal(V p,J<V>&centers,V tip,F tip_radius){
@@ -110,7 +87,7 @@ V estimate_normal(V p,J<V>&centers,V tip,F tip_radius){
     F dz=map(A(p,w(0,0,eps)),centers,tip,tip_radius,&dummy_id,&dummy_index) -
                map(A(p,w(0,0,-eps)),centers,tip,tip_radius,&dummy_id,&dummy_index);
 
-    return N(w(dx,dy,dz));
+    K N(w(dx,dy,dz));
 }
 
 void write_ppm_header(FILE *f){
@@ -123,17 +100,17 @@ V get_light(F t){
     F x=cosf(angle)*radius;
     F y=sinf(angle*h)*1.5;
     F z=sinf(angle)*radius;
-    return N(w(x,y,z));
+    K N(w(x,y,z));
 }
 
 I main(){
     X=T(q,64);
-    compute_dft();
+    g();
     for(I frame=0;frame<FRAMES;++frame){
         char fname[64];
         snprintf(fname,sizeof(fname),"frame_%03d.ppm",frame);
         FILE *out=fopen(fname,"wb");
-        if (!out) continue;
+        if(!out) continue;
         write_ppm_header(out);
 
         F t=2*P*frame/FRAMES;
@@ -163,13 +140,13 @@ I main(){
                     V p=A(ro,M(rd,d));
                     F dist=map(p,centers,tip,tip_radius,&shape_id,&shape_index);
 
-                    if (dist<.001){ id=shape_id;break;}
-                    if (d>3.) break;
+                    if(dist<.001){ id=shape_id;break;}
+                    if(d>3.) break;
                     d+=dist;
                 }
 
                 unsigned char r=0,g=0,b=0;
-                if (id==1 || id==2){
+                if(id==1 || id==2){
                     V p=A(ro,M(rd,d));
                     V n=estimate_normal(p,centers,tip,tip_radius);
                     F ambient=.3;
@@ -177,13 +154,13 @@ I main(){
 
                     F ball_t=(shape_index>=0) ? (F)shape_index/(F)(centers.size() - 1) : 0.;
 
-                    if (id==1){
+                    if(id==1){
                         F animated_t=fmodf(sqrt(ball_t)+frame*.01,1.);
                         V color=U(animated_t);
                         r=(unsigned char)(brightness*255*color.x);
                         g=(unsigned char)(brightness*255*color.y);
                         b=(unsigned char)(brightness*255*color.z);
-                    } else if (id==2){
+                    } else if(id==2){
                         F tip_t=fmodf(sqrt(1.)+frame*.01,1.); // which is just fmodf(1.0+frame*0.01f,1.0f)
 
                         V color=U(tip_t);
@@ -192,13 +169,13 @@ I main(){
                         b=(unsigned char)(brightness*255*color.z);
                         I tx=(int)((u+1)*h*W);
                         I ty=(int)((v+1)*h*H);
-                        if (tx>=0 && tx<W && ty>=0 && ty<H)
+                        if(tx>=0 && tx<W && ty>=0 && ty<H)
                             trail[ty][tx]=1.;
                     }
                 }
 
                 F trail_strength=trail[y][x];
-                if (trail_strength>.001){
+                if(trail_strength>.001){
                     // Mix original color with red trail
                     F tr=trail_strength*255.;
                     r=(unsigned char)clamp((F)r+tr,0.f,255.f);
@@ -213,5 +190,5 @@ I main(){
         fclose(out);
     }
 
-    return 0;
+    K 0;
 }
