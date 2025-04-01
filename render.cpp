@@ -53,28 +53,15 @@ K w(p.real(),p.imag(),z);
 }
 V C(V p,J<V>&c,V t,F r){F e=.001;I d,b;F x=Y(A(p,w(e,0,0)),c,t,r,&d,&b)-Y(A(p,w(-e,0,0)),c,t,r,&d,&b);F y=Y(A(p,w(0,e,0)),c,t,r,&d,&b)-Y(A(p,w(0,-e,0)),c,t,r,&d,&b);F z=Y(A(p,w(0,0,e)),c,t,r,&d,&b)-Y(A(p,w(0,0,-e)),c,t,r,&d,&b);K N(w(x,y,z));}
 
-void write_ppm_header(FILE *f){
-    fprintf(f,"P6\n%d %d\n255\n",W,W);
-}
-
-V get_light(F t){
-    F angle=t*1.5;
-    F radius=3.;
-    F x=cosf(angle)*radius;
-    F y=sinf(angle*h)*1.5;
-    F z=sinf(angle)*radius;
-    K N(w(x,y,z));
-}
-
 I main(){
     X=T(q,64);
     g();
     O(I frame=0;frame<FRAMES;++frame){
         char fname[64];
         snprintf(fname,sizeof(fname),"frame_%03d.ppm",frame);
-        FILE *out=fopen(fname,"wb");
-        if(!out) continue;
-        write_ppm_header(out);
+        FILE *o=fopen(fname,"wb");
+        if(!o) continue;
+        fprintf(o,"P6\n%d %d\n255\n",W,W);
 
         F t=2*P*frame/FRAMES;
         F tip_radius;
@@ -85,7 +72,12 @@ I main(){
             O(I x=0;x<W;x++)
                 trail[y][x] *=.999;
 
-        V light_dir=get_light(t);
+        F angle=t*1.5;
+        F radius=3.;
+        F x=cosf(angle)*radius;
+        F y=sinf(angle*h)*1.5;
+        F z=sinf(angle)*radius;
+        V light_dir=N(w(x,y,z));
 
         O(I y=0;y<W;y++){
             O(I x=0;x<W;x++){
@@ -108,30 +100,29 @@ I main(){
                     d+=dist;
                 }
 
-                unsigned char r=0,g=0,b=0;
+                I r=0,g=0,b=0;
                 if(id==1 || id==2){
                     V p=A(ro,M(rd,d));
                     V n=C(p,centers,tip,tip_radius);
                     F ambient=.3;
-                    F brightness=ambient+fmaxf(0.,D(n,light_dir))*.7;
+                    F w=(ambient+fmaxf(0.,D(n,light_dir))*.7)*255.;
 
                     F ball_t=(shape_index>=0) ? (F)shape_index/(F)(centers.size()-1):0.;
 
                     if(id==1){
                         F animated_t=fmodf(sqrt(ball_t)+frame*.01,1.);
                         V color=U(animated_t);
-                        r=(unsigned char)(brightness*255*color.x);
-                        g=(unsigned char)(brightness*255*color.y);
-                        b=(unsigned char)(brightness*255*color.z);
+                        r=(I)(w*color.x);
+                        g=(I)(w*color.y);
+                        b=(I)(w*color.z);
                     } else if(id==2){
-                        F tip_t=fmodf(sqrt(1.)+frame*.01,1.); // which is just fmodf(1.0+frame*0.01f,1.0f)
-
+                        F tip_t=fmodf(sqrt(1.)+frame*.01,1.); 
                         V color=U(tip_t);
-                        r=(unsigned char)(brightness*255*color.x);
-                        g=(unsigned char)(brightness*255*color.y);
-                        b=(unsigned char)(brightness*255*color.z);
-                        I tx=(int)((u+1)*h*W);
-                        I ty=(int)((v+1)*h*W);
+                        r=(I)(w*color.x);
+                        g=(I)(w*color.y);
+                        b=(I)(w*color.z);
+                        I tx=(I)((u+1)*h*W);
+                        I ty=(I)((v+1)*h*W);
                         if(tx>=0 && tx<W && ty>=0 && ty<W)
                             trail[ty][tx]=1.;
                     }
@@ -139,18 +130,17 @@ I main(){
 
                 F trail_strength=trail[y][x];
                 if(trail_strength>.001){
-                    // Mix original color with red trail
                     F tr=trail_strength*255.;
-                    r=(unsigned char)clamp((F)r+tr,0.f,255.f);
-                    g=(unsigned char)clamp((F)g*(1.-trail_strength),0.,255.);
-                    b=(unsigned char)clamp((F)b*(1.-trail_strength),0.,255.);
+                    r=(I)clamp((F)r+tr,0.f,255.f);
+                    g=(I)clamp((F)g*(1.-trail_strength),0.,255.);
+                    b=(I)clamp((F)b*(1.-trail_strength),0.,255.);
                 }
 
-                fputc(r,out);fputc(g,out);fputc(b,out);
+                fputc(r,o);fputc(g,o);fputc(b,o);
             }
         }
 
-        fclose(out);
+        fclose(o);
     }
 
     K 0;
