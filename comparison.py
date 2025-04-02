@@ -39,10 +39,10 @@ def main():
     x = sum(distances) / len(distances)
     
     try:
-        with open("render.cpp", "r") as f:
+        with open("r.c", "r") as f:
             code_length = len(f.read())
     except FileNotFoundError:
-        print("render.cpp not found.")
+        print("r.c not found.")
         return
 
     final_score = code_length * (1 + x)
